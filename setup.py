@@ -42,7 +42,7 @@ setup(
     platforms='any',
     install_requires=[
         'Flask',
-        'protobuf==2.5.0',
+        'protobuf',
         'Werkzeug',
     ],
     test_suite='tests',
