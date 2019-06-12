@@ -10,7 +10,7 @@
     :license: MIT/X11, see LICENSE for more details.
 '''
 
-__version_info__ = ('0', '1', '0')
+__version_info__ = ('0', '2', '0')
 __version__ = ".".join(__version_info__)
 __author__ = "Keen Browne"
 __license__ = "MIT/X11"
@@ -24,6 +24,7 @@ from flask import abort, jsonify, request, Flask
 from google.protobuf.internal.containers import BaseContainer
 from google.protobuf.reflection import GeneratedProtocolMessageType
 from google.protobuf.message import Message as ProtocolMessage, DecodeError
+from google.protobuf.json_format import MessageToJson
 
 from werkzeug.wrappers import Response
 
@@ -128,7 +129,11 @@ class JsonCodec(object):
         return JsonResponseDict(_request.get_json())
 
     def make_response(self, data, status_code, headers):
-        response = jsonify(**data)
+        if isinstance(data, ProtocolMessage):
+            response = MessageToJson(data)
+        else:
+            response = jsonify(**data)
+
         return response, status_code, headers
 
 
