@@ -35,7 +35,7 @@ class EncodeError(Exception):
 class PbjRequest(Flask.request_class):
     def __init__(self, *args, **kwargs):
         super(PbjRequest, self).__init__(*args, **kwargs)
-        self.data_dict = None
+        self.data = None
 
 Flask.request_class = PbjRequest
 
@@ -135,7 +135,7 @@ class JsonCodec(object):
 class ProtobufCodec(object):
     mimetype = "application/x-protobuf"
 
-    def __init__(self, sends=None, receives=None, errors=None):
+    def __init__(self, sends=None, receives=None, errors=None, to_dict=True):
         assert(sends or receives)
         if sends:
             assert(isinstance(sends, GeneratedProtocolMessageType))
@@ -147,42 +147,70 @@ class ProtobufCodec(object):
         self.send_type = sends
         self.receive_type = receives
         self.error_type = errors
+        self.to_dict = to_dict
 
     def parse_request_data(self, _request):
         if not self.receive_type:
             abort(400)  # Bad Request
-        data_dict = {}
+
         message = self.receive_type()
         try:
             message.ParseFromString(_request.data)
         except DecodeError:
             abort(400)
-        copy_pb_to_dict(data_dict, message)
 
-        return data_dict
+        if self.to_dict:
+            data_dict = {}
+            copy_pb_to_dict(data_dict, message)
+            return data_dict
+        else:
+            return message
 
     def make_response(self, data, status_code, headers):
         if not data:
-            Flask.response_class(
+            return Flask.response_class(
                 "",
                 mimetype=self.mimetype
             ), status_code, headers
 
-        # if the status code is not a success code
-        if status_code % 100 == 4 and self.error_type:
-            response_data = self.error_type()
-        else:
-            if not self.send_type:
-                raise EncodeError(
-                    "Data could not be encoded into a protobuf message. No "
-                    "protobuf message type specified to send."
-                )
-            response_data = self.send_type()
+        err_status_code = status_code % 100 == 4
 
-        copy_dict_to_pb(
-            instance=response_data,
-            dictionary=data
-        )
+        if isinstance(data, self.send_type):
+            # if the status code isn't a success, error
+            if err_status_code:
+                raise Exception("Expected successful status code, got {}."
+                    .format(status_code))
+
+            response_data = data
+        elif isinstance(data, self.error_type):
+            # if the status code is a success, something isn't quite right
+            if not err_status_code:
+                raise Exception("Expected error status code, got {}."
+                    .format(status_code))
+
+            response_data = data
+        elif isinstance(data, dict):
+            # if the status code is not a success code
+            if err_status_code and self.error_type:
+                response_data = self.error_type()
+            else:
+                if not self.send_type:
+                    raise EncodeError(
+                        "Data could not be encoded into a protobuf message. "
+                        "No protobuf message type specified to send."
+                    )
+                response_data = self.send_type()
+
+            copy_dict_to_pb(
+                instance=response_data,
+                dictionary=data
+            )
+        else:
+            raise EncodeError(
+                "Methods decorated with api must return a dict, int, protobuf "
+                "message, status code or flask Response. We got a {}."
+                .format(type(data))
+            )
 
         return Flask.response_class(
             response_data.SerializeToString(),
@@ -197,8 +225,8 @@ class api(object):
     """Convert request and response data between python dictionaries and the
     provided formats.
 
-    The view method can access the added request.data_dict data member for
-    input and return a dictionary for output. The client's accept and
+    The view method can access the added request.received_message data member
+    for input and return a dictionary for output. The client's accept and
     content-type headers determine the format of the messages.
 
     Similar to flask, routes can avoid pbj.api's response serialization by
@@ -224,7 +252,7 @@ class api(object):
         @api(json, protobuf(receives=Person, sends=Team))
         def create_team():
             # Given a team leader return a new team
-            leader = request.data_dict
+            leader = request.received_message
             return {
                 'id': get_url(2),
                 'name': "{0}'s Team".format(leader['name']),
@@ -286,7 +314,7 @@ class api(object):
         @wraps(fn)
         def to_response(*args, **kwargs):
 
-            request.data_dict = self.parse_request_data(request)
+            request.received_message = self.parse_request_data(request)
             try:
                 result = fn(*args, **kwargs)
             except JsonDictKeyError:
@@ -326,12 +354,6 @@ class api(object):
                 return Flask.response_class("", mimetype=mimetype), result, []
 
             data, status_code, headers = _result_to_response_tuple(result)
-
-            if not isinstance(data, dict):
-                raise EncodeError(
-                    "Methods decorated with api must return a dict, int "
-                    "status code or flask Response."
-                )
 
             return self.codecs[mimetype].make_response(
                 data,

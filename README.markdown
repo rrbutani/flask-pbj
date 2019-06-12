@@ -29,16 +29,16 @@ message Team {
 ```
 *app.py*
 ```python
-# The route function can access the added request.data_dict data member for
-# input and return a dictionary for output. The client's accept and
-# content-type headers determine the format of the messages.
-# Similar to flask, routes can avoid pbjs response serialization by directly
-# returning a flask.Response object.
+# The route function can access the added request.received_message data member
+# for input and return a dictionary for output. The client's accept and
+# content-type headers determine the format of the messages. Similar to flask,
+# routes can avoid pbjs response serialization by directly returning a
+# flask.Response object.
 @app.route('/teams', methods=['POST'])
 @api(json, protobuf(receives=Person, sends=Team, errors=Error))
 def create_team():
-    leader = request.data_dict
- 
+    leader = request.received_message
+
     if len(leader['name']) < 3:
         # Optionally, return a tuple of the form dict, status_code, headers
         # A 4xx HTTP error will use the 'errors' protobuf message type
