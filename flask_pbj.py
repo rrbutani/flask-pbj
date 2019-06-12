@@ -35,7 +35,7 @@ class EncodeError(Exception):
 class PbjRequest(Flask.request_class):
     def __init__(self, *args, **kwargs):
         super(PbjRequest, self).__init__(*args, **kwargs)
-        self.data = None
+        self.received_message = None
 
 Flask.request_class = PbjRequest
 

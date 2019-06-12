@@ -5,10 +5,10 @@ and deserializes json or protobuf formatted messages to and from a python
 dictionary.
 
 ## Why Flask-Pbj
-Flask Peanut Butter and Jelly to simplifies the creation of REST APIs for C++ 
+Flask Peanut Butter and Jelly to simplifies the creation of REST APIs for C++
 clients. Flask-pbj decorated app.routes accept and return protobuf messages or
-JSON. The JSON is useful for debugging and public API's while Google Protobuf 
-is a well-documented compact and efficient format, particularly useful for 
+JSON. The JSON is useful for debugging and public API's while Google Protobuf
+is a well-documented compact and efficient format, particularly useful for
 C++/Python communication.
 
 ## Examples
@@ -82,3 +82,8 @@ curl -X POST -H "Accept: application/x-protobuf" \
 
 ## Adding new mimetypes
 Codecs are classes see JsonCodec and ProtobufCodec for examples
+
+## Protobuf Message escape hatch
+If you want your decorated function to get the raw Protobuf Message class instead of the converted dict, set the keyword arg `to_dict` to `False` in the `protobuf` constructor.
+
+Warning: If `to_dict` is set to `False` and a JSON message is received it will *not* be converted to an instance of the corresponding Protobuf Message class (it'll still be passed to your function as a dictionary).
