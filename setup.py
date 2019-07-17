@@ -20,7 +20,7 @@
 import os
 from setuptools import setup
 
-module_path = os.path.join(os.path.dirname(__file__), 'flask_pbj.py')
+module_path = os.path.join(os.path.dirname(__file__), 'flask_pbj', '__init__.py')
 version_line = list(filter(lambda l: l.startswith('__version_info__'),
                       open(module_path)))[0]
 
@@ -35,7 +35,7 @@ setup(
     author_email='keen.browne@gmail.com',
     description='Simplifies the use of Protobuf in Flask app.routes',
     long_description=__doc__,
-    py_modules=[
+	packages=[
         'flask_pbj'
     ],
     zip_safe=False,
@@ -45,6 +45,9 @@ setup(
         'protobuf',
         'Werkzeug',
     ],
+    package_data={
+        "flask_pbj": ["py.typed"]
+    },
     test_suite='tests',
     classifiers=[
         'Development Status :: 3 - Alpha',
