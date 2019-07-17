@@ -18,7 +18,7 @@ __copyright__ = "(c) 2014 by Keen Browne"
 __all__ = ['api', 'json', 'protobuf']
 
 from functools import wraps
-from typing import Callable, List, Optional, TypeVar
+from typing import Callable, List, Optional, Type, TypeVar
 
 from flask import abort, jsonify, request, Flask, Response
 
