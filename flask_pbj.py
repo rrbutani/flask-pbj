@@ -18,8 +18,9 @@ __copyright__ = "(c) 2014 by Keen Browne"
 __all__ = ['api', 'json', 'protobuf']
 
 from functools import wraps
+from typing import Callable, List, Optional, TypeVar
 
-from flask import abort, jsonify, request, Flask
+from flask import abort, jsonify, request, Flask, Response
 
 from google.protobuf.internal.containers import BaseContainer
 from google.protobuf.reflection import GeneratedProtocolMessageType
@@ -122,7 +123,10 @@ class JsonResponseDict(dict):
             raise JsonDictKeyError(key)
 
 
-class JsonCodec(object):
+class Codec(object):
+    ...
+
+class JsonCodec(Codec):
     mimetype = "application/json"
 
     def parse_request_data(self, _request):
@@ -137,10 +141,13 @@ class JsonCodec(object):
         return response, status_code, headers
 
 
-class ProtobufCodec(object):
+class ProtobufCodec(Codec):
     mimetype = "application/x-protobuf"
 
-    def __init__(self, sends=None, receives=None, errors=None, to_dict=True):
+    def __init__(self, sends: Optional[Type[ProtocolMessage]] = None,
+            receives: Optional[Type[ProtocolMessage]] = None,
+            errors: Optional[Type[ProtocolMessage]] = None,
+            to_dict: bool = True):
         assert(sends or receives)
         if sends:
             assert(isinstance(sends, GeneratedProtocolMessageType))
@@ -289,7 +296,7 @@ class api(object):
             -H "Content-type: application/x-protobuf" \
             http://127.0.0.1:5000/teams --data-binary @person.pb > team.pb
     """
-    def __init__(self, *codecs):
+    def __init__(self, *codecs: Codec) -> None:
         self.codecs = dict([(codec.mimetype, codec) for codec in codecs])
         self.mimetypes = [
             codec.mimetype for codec in codecs
@@ -315,9 +322,11 @@ class api(object):
             self.mimetypes
         )
 
-    def __call__(self, fn):
+    T = TypeVar('T', bound=ProtocolMessage)
+
+    def __call__(self, fn: Callable[[], T]) -> Callable[[], Response]:
         @wraps(fn)
-        def to_response(*args, **kwargs):
+        def to_response(*args, **kwargs) -> Any:
 
             request.received_message = self.parse_request_data(request)
             try:
