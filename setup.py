@@ -6,14 +6,14 @@
     response data. The pbj decorator serializes and deserializes json or
     protobuf formatted messages to and from a python dictionary.
 
-    Flask-Pbj requires google protobuf 2.5
+    Flask-Pbj seems to somewhat work with protobuf 3.x
 
     Links
     `````
     * `development version
-    <https://github.com/keenbrowne/flask-pbj>`_
-    * `Google Protobuf (use the 2.5 version)
-    <https://code.google.com/p/protobuf/downloads/list>`_
+    <https://github.com/rrbutani/flask-pbj>`_
+    * `Google Protobuf
+    <https://pypi.org/project/protobuf/>`_
     * `Google Protobuf Developer guide
     <https://developers.google.com/protocol-buffers/docs/overview>`_
 '''
@@ -29,7 +29,7 @@ __version__ = '.'.join(eval(version_line.split('__version_info__ = ')[-1]))
 setup(
     name='Flask-Pbj',
     version=__version__,
-    url='https://github.com/keenbrowne/flask-pbj',
+    url='https://github.com/rrbutani/flask-pbj',
     license='MIT',
     author='Keen Browne',
     author_email='keen.browne@gmail.com',
